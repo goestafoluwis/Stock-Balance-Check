@@ -253,12 +253,15 @@
                 const sku = c[0] && c[0].v !== null ? String(c[0].v) : '';
                 if (!sku || sku.toUpperCase() === 'SKU') return;
 
-                const alamat = c[1] && c[1].v !== null ? String(c[1].v) : '-';
-                const price = c[2] && c[2].v !== null ? Number(c[2].v) : 0;
-                const sys = c[3] && c[3].v !== null ? Number(c[3].v) : 0;
-                const barcode = c[5] && c[5].v !== null ? String(c[5].v) : sku;
-                const desc = c[6] && c[6].v !== null ? String(c[6].v) : '-';
-                const ks = c[7] && c[7].v !== null ? String(c[7].v) : '-';
+                // Mapping ulang sesuai screenshot Google Sheet terbaru
+                const desc = c[1] && c[1].v !== null ? String(c[1].v) : '-';
+                const alamat = c[2] && c[2].v !== null ? String(c[2].v) : '-';
+                const price = c[3] && c[3].v !== null ? Number(c[3].v) : 0;
+                const ks = c[4] && c[4].v !== null ? String(c[4].v) : '-';
+                const sys = c[5] && c[5].v !== null ? Number(c[5].v) : 0;
+                
+                // Karena kolom barcode nggak kelihatan di sheet, sementara disamakan dengan SKU
+                const barcode = sku; 
 
                 parsed.push({
                     no: idx,
