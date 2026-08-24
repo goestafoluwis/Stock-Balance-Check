@@ -102,20 +102,27 @@
             </div>
         </div>
 
-        <!-- NAVIGATION TAB SHEET / RAK -->
-        <div class="mb-4 overflow-x-auto pb-2">
-            <div id="sheetTabs" class="flex space-x-2 border-b border-slate-200 min-w-max">
-                <!-- Dynamic Tabs generated via JS -->
-            </div>
-        </div>
-
-        <!-- CONTROLS & FILTER -->
+        <!-- CONTROLS & SLICER FILTER -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 mb-6 shadow-sm">
             <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-                <div class="md:col-span-6 relative">
+                
+                <!-- SLICER SHEET / RAK (FILTER BARU UTAMA) -->
+                <div class="md:col-span-3">
+                    <div class="relative">
+                        <i class="fa-solid fa-layer-group absolute left-3 top-3 text-brand-600 text-xs"></i>
+                        <select id="sheetSlicer" onchange="changeSheet(this.value)" class="w-full pl-8 pr-4 py-2 bg-brand-50/50 border border-brand-200 font-semibold rounded-lg text-xs text-brand-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- SEARCH BAR -->
+                <div class="md:col-span-4 relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
                     <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Cari SKU, Barcode, Deskripsi, Alamat Rak..." class="w-full pl-8 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
                 </div>
+
+                <!-- STATUS FILTER -->
                 <div class="md:col-span-3">
                     <select id="filterStatus" onchange="applyFilters()" class="w-full py-2 px-3 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-700">
                         <option value="ALL">Semua Status</option>
@@ -125,7 +132,9 @@
                         <option value="UNCHECKED">Belum Dicek</option>
                     </select>
                 </div>
-                <div class="md:col-span-3">
+
+                <!-- EXPORT BUTTON -->
+                <div class="md:col-span-2">
                     <button onclick="exportToCSV()" class="w-full bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold py-2 px-3 rounded-lg flex items-center justify-center space-x-2">
                         <i class="fa-solid fa-file-csv"></i>
                         <span>Export CSV</span>
@@ -168,9 +177,8 @@
     <script>
         const SPREADSHEET_ID = '1Ft7xFLiaHN5KDNZxBvrmsOl_o2K2UhMn0B21tPB8V70';
         
-        // DAFTAR SHEET SESUAI DENGAN PADA TAB GOOGLE SHEET KAMU
+        // DATABASE DATABASE UTAMA DIHAPUS SUPAYA LOADING TIDAK BERAT
         const AVAILABLE_SHEETS = [
-            { name: 'DATABASE', label: 'DATABASE UTAMA' },
             { name: 'KS', label: 'KEEPSTOCK (KS)' },
             { name: 'OLAHAN NUSANTARA', label: 'OLAHAN NUSANTARA' },
             { name: 'KASIR', label: 'KASIR' },
@@ -179,41 +187,38 @@
             { name: 'DATA AREA', label: 'DATA AREA' }
         ];
 
-        let activeSheet = 'DATABASE';
+        let activeSheet = AVAILABLE_SHEETS[0].name;
         let rawData = [];
         let filteredData = [];
 
         document.addEventListener('DOMContentLoaded', () => {
-            renderTabs();
+            initSlicerOptions();
             fetchSheetData();
         });
 
-        function renderTabs() {
-            const tabsContainer = document.getElementById('sheetTabs');
-            tabsContainer.innerHTML = '';
+        // MASUKKAN PILIHAN SHEET KE DALAM SLICER DROPDOWN
+        function initSlicerOptions() {
+            const slicerSelect = document.getElementById('sheetSlicer');
+            slicerSelect.innerHTML = '';
 
             AVAILABLE_SHEETS.forEach(sheet => {
-                const btn = document.createElement('button');
-                const isActive = sheet.name === activeSheet;
-                btn.className = `px-4 py-2 text-xs font-semibold rounded-t-lg transition-colors border-b-2 ${
-                    isActive 
-                    ? 'border-brand-600 text-brand-600 bg-white shadow-sm' 
-                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100'
-                }`;
-                btn.innerText = sheet.label;
-                btn.onclick = () => {
-                    activeSheet = sheet.name;
-                    renderTabs();
-                    fetchSheetData();
-                };
-                tabsContainer.appendChild(btn);
+                const opt = document.createElement('option');
+                opt.value = sheet.name;
+                opt.innerText = `Area: ${sheet.label}`;
+                if(sheet.name === activeSheet) opt.selected = true;
+                slicerSelect.appendChild(opt);
             });
+        }
+
+        function changeSheet(selectedSheetName) {
+            activeSheet = selectedSheetName;
+            fetchSheetData();
         }
 
         async function fetchSheetData() {
             const syncIcon = document.getElementById('syncIcon');
             syncIcon.classList.add('fa-spin');
-            showStatusAlert(`Mengambil data dari sheet: ${activeSheet}...`, 'bg-blue-50 text-blue-700 border border-blue-200');
+            showStatusAlert(`Mengambil data dari area: ${activeSheet}...`, 'bg-blue-50 text-blue-700 border border-blue-200');
 
             const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(activeSheet)}`;
 
@@ -239,25 +244,13 @@
             }
         }
 
-        // PEMETAAN ULANG SESUAI URUTAN STRUKTUR GOOGLE SHEET
         function parseRowsByColumnStructure(rows) {
             const parsed = [];
             rows.forEach((row, idx) => {
                 const c = row.c;
                 if (!c || c.length === 0) return;
 
-                // Urutan Spreadsheet:
-                // Col A (0): SKU
-                // Col B (1): ALAMAT
-                // Col C (2): HARGA
-                // Col D (3): QTY (SYS)
-                // Col E (4): TANGGAL
-                // Col F (5): BARCODE PANJANG
-                // Col G (6): DESC
-                // Col H (7): KEEPSTOCK
                 const sku = c[0] && c[0].v !== null ? String(c[0].v) : '';
-                
-                // Abaikan jika baris header atau kosong
                 if (!sku || sku.toUpperCase() === 'SKU') return;
 
                 const alamat = c[1] && c[1].v !== null ? String(c[1].v) : '-';
