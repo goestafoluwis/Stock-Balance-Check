@@ -111,6 +111,7 @@
                     <div class="relative">
                         <i class="fa-solid fa-layer-group absolute left-3 top-3 text-brand-600 text-xs"></i>
                         <select id="sheetSlicer" onchange="changeSheet(this.value)" class="w-full pl-8 pr-4 py-2 bg-brand-50/50 border border-brand-200 font-semibold rounded-lg text-xs text-brand-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <!-- Populated dynamically -->
                         </select>
                     </div>
                 </div>
@@ -331,11 +332,11 @@
                     <td class="py-2.5 px-3 text-right font-mono font-semibold text-slate-700">${item.sys}</td>
                     <td class="py-2.5 px-3 text-center">
                         <input type="number" min="0" 
-    value="${item.phy !== null ? item.phy : ''}" 
-    placeholder="-"
-    onchange="updateQty('${item.sku}', this.value)"
-    class="w-20 text-center font-mono font-bold py-1 px-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
-/>
+                            value="${item.phy !== null ? item.phy : ''}" 
+                            placeholder="-"
+                            oninput="updateQty('${item.sku}', this.value)"
+                            class="w-20 text-center font-mono font-bold py-1 px-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        />
                     </td>
                     <td id="var-${item.sku}" class="py-2.5 px-3 text-right font-mono ${getVarColorClass(isChecked, variance)}">
                         ${isChecked ? (variance > 0 ? '+' + variance : variance) : '-'}
@@ -366,7 +367,7 @@
             }
         }
 
-        // UPDATE HANYA CELL BARIS TERSEBUT & KARTU KPI
+        // FUNGSI INI SUDAH BERSIH DARI RENDER ULANG TABEL
         function updateQty(sku, val) {
             const item = rawData.find(d => d.sku === sku);
             if (item) {
@@ -386,11 +387,13 @@
                     statusCell.innerHTML = getBadgeHtml(isChecked, variance);
                 }
 
+                // Update KPI Card doang tanpa ngerusak tabel
                 calculateMetrics();
             }
         }
 
         function calculateMetrics() {
+            // Kita hitung metric dari rawData supaya ngikutin semua update
             const totalSku = filteredData.length;
             const checkedItems = filteredData.filter(d => d.phy !== null);
             const totalChecked = checkedItems.length;
