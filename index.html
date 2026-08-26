@@ -20,16 +20,21 @@
     <style>
         /* PENGATURAN KHUSUS UNTUK CETAK KERTAS (PRINTSHEET) */
         @media print {
-            @page { size: portrait; margin: 10mm; }
-            body { background-color: white !important; color: black !important; }
+            @page { size: portrait; margin: 8mm; }
+            body { background-color: white !important; color: black !important; font-size: 9px !important; }
             .no-print { display: none !important; }
             main { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
             .print-workspace { border: none !important; box-shadow: none !important; overflow: visible !important; }
             table { border-collapse: collapse !important; width: 100% !important; }
-            th, td { border: 1px solid #000 !important; padding: 6px !important; font-size: 11px !important; color: black !important; }
+            th, td { 
+                border: 1px solid #000 !important; 
+                padding: 3px 4px !important; 
+                font-size: 9px !important; 
+                line-height: 1.2 !important;
+                color: black !important; 
+            }
             th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            /* Kotak kosong untuk diisi manual pake pulpen */
-            .print-box { border-bottom: 1px dashed #000 !important; width: 100%; min-height: 16px; display: inline-block; }
+            .print-box { border-bottom: 1px dashed #000 !important; width: 100%; min-height: 12px; display: inline-block; }
         }
     </style>
 </head>
@@ -162,7 +167,6 @@
         </div>
 
         <!-- TABLE WORKSPACE -->
-        <!-- Menghapus rounded dan shadow saat dicetak -->
         <div class="print-workspace bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -274,7 +278,6 @@
                 const ks = c[4] && c[4].v !== null ? String(c[4].v) : '-';
                 const sys = c[5] && c[5].v !== null ? Number(c[5].v) : 0;
                 
-                // MENGAMBIL DATA QTY FISIK LANGSUNG DARI GOOGLE SHEET (Asumsi di Kolom G / Index 6)
                 const phyRaw = c[6] ? c[6].v : null;
                 let phy = null;
                 if (phyRaw !== null && phyRaw !== undefined && phyRaw !== '') {
@@ -369,12 +372,9 @@
                         <span class="px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.ks !== '#N/A' && item.ks !== '-' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-400'}">${item.ks}</span>
                     </td>
                     <td class="py-2.5 px-3 text-right font-mono font-semibold text-slate-700">${item.sys}</td>
-                    
-                    <!-- AREA PHY UNTUK DASHBOARD & PRINT -->
                     <td class="py-2.5 px-3 text-center">
                         ${isChecked ? `<span class="font-mono font-bold text-brand-700 text-base">${item.phy}</span>` : '<span class="print-box w-10 mx-auto border-b-2 border-slate-300"></span>'}
                     </td>
-                    
                     <td class="py-2.5 px-3 text-right font-mono ${varColor}">
                         ${isChecked ? (variance > 0 ? '+' + variance : variance) : '-'}
                     </td>
