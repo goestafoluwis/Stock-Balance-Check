@@ -34,6 +34,7 @@
             }
             th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .print-box { border-bottom: 1px dashed #000 !important; width: 100%; min-height: 12px; display: inline-block; }
+            .verify-input { border: 1px solid #000 !important; background: transparent !important; }
         }
     </style>
 </head>
@@ -150,9 +151,8 @@
                     </select>
                 </div>
 
-                <!-- DYNAMIC ACTION BUTTONS (UPLOAD TXT Hanya Muncul di Mode Konversi) -->
+                <!-- DYNAMIC ACTION BUTTONS -->
                 <div class="md:col-span-4 flex space-x-1.5" id="actionButtonContainer">
-                    <!-- Tombol Upload TXT (Dirender dinamis via JS) -->
                     <input type="file" id="fileTxtInput" accept=".txt" class="hidden" onchange="handleTxtUpload(event)">
                     <div id="uploadTxtWrapper" class="hidden flex-1">
                         <button onclick="document.getElementById('fileTxtInput').click()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold py-2 rounded-lg flex items-center justify-center space-x-1 shadow-sm">
@@ -192,6 +192,7 @@
                         <th class="py-3 px-3 text-center w-20">PHY</th>
                         <th class="py-3 px-3 text-right">VAR</th>
                         <th class="py-3 px-3 text-center">Status</th>
+                        <th class="py-3 px-3 text-center w-28 bg-brand-50/50 text-brand-800">Verifikasi</th>
                     </tr>
                 </thead>
                 <tbody id="inventoryTableBody" class="divide-y divide-slate-200 text-xs text-slate-700">
@@ -219,10 +220,11 @@
         ];
 
         let activeSheet = AVAILABLE_SHEETS[0].name;
-        let masterDatabase = {}; // Penampung database utama untuk pencocokan konversi txt
+        let masterDatabase = {};
         let rawData = [];
         let filteredData = [];
-        let convertedTxtData = []; // Menyimpan hasil konversi txt sementara
+        let convertedTxtData = [];
+        let verificationData = {}; // Menyimpan input catatan verifikasi user berdasarkan SKU/Index
 
         document.addEventListener('DOMContentLoaded', () => {
             initSlicerOptions();
@@ -268,7 +270,6 @@
             showStatusAlert(`Menyiapkan data database & area...`, 'bg-blue-50 text-blue-700 border border-blue-200');
 
             try {
-                // Tarik database utama untuk referensi konversi TXT (Kolom A: SKU, B: Alamat, C: Price, D: SYS, G: Deskripsi)
                 const gvizDbUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=DATABASE`;
                 const resDb = await fetch(gvizDbUrl);
                 const textDb = await resDb.text();
@@ -376,7 +377,6 @@
             return parsed;
         }
 
-        // Fungsi khusus menghandle upload TXT scan gondola dan mencocokkannya dengan database
         function handleTxtUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -394,7 +394,6 @@
                         const alamatScan = parts[1].trim();
                         const skuScan = parts[2].trim();
                         
-                        // Cek apakah SKU sudah ada dalam list scan agar tidak duplikat
                         const existing = scannedItems.find(item => item.sku === skuScan);
                         if (!existing) {
                             const dbMatch = masterDatabase[skuScan];
@@ -436,18 +435,22 @@
             reader.readAsText(file);
         }
 
-        // Fitur Copy GS khusus untuk Mode Konversi TXT agar mudah dicopas ke Google Sheet
         function copyDataForGS() {
             if (filteredData.length === 0) return alert('Tidak ada data untuk di-copy.');
             let tsv = '';
             filteredData.forEach(item => {
-                tsv += `${item.sku}\t${item.desc}\t${item.alamat}\t${item.price}\t${item.ks}\t${item.sys}\t\n`;
+                const verifyVal = verificationData[item.sku] || '';
+                tsv += `${item.sku}\t${item.desc}\t${item.alamat}\t${item.price}\t${item.ks}\t${item.sys}\t\t${verifyVal}\n`;
             });
             navigator.clipboard.writeText(tsv).then(() => {
-                alert('Format berhasil di-copy! Silakan paste (Ctrl+V) langsung ke Google Sheet.');
+                alert('Format berhasil di-copy lengkap dengan kolom verifikasi! Silakan paste langsung ke Google Sheet.');
             }).catch(err => {
                 alert('Gagal melakukan copy: ' + err);
             });
+        }
+
+        function updateVerification(sku, val) {
+            verificationData[sku] = val;
         }
 
         function applyFilters() {
@@ -493,6 +496,7 @@
                 const isChecked = item.phy !== null;
                 const variance = isChecked ? (item.phy - item.sys) : 0;
                 const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.price);
+                const currentVerifyVal = verificationData[item.sku] || '';
 
                 let varColor = 'text-slate-400';
                 if (isChecked) {
@@ -530,6 +534,9 @@
                         ${isChecked ? (variance > 0 ? '+' + variance : variance) : '-'}
                     </td>
                     <td class="py-2.5 px-3 text-center">${badgeHtml}</td>
+                    <td class="py-2.5 px-3 text-center bg-slate-50/50">
+                        <input type="text" value="${currentVerifyVal}" oninput="updateVerification('${item.sku}', this.value)" placeholder="Cek ulang..." class="verify-input w-full px-2 py-1 bg-white border border-slate-300 rounded text-center text-xs font-mono focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    </td>
                 `;
 
                 tbody.appendChild(tr);
@@ -558,12 +565,17 @@
         function exportToCSV() {
             if (filteredData.length === 0) return alert('Tidak ada data.');
 
-            const headers = ['NO', 'SKU', 'BARCODE', 'DESKRIPSI', 'ALAMAT', 'HARGA', 'KS', 'QTY_SYS', 'QTY_PHY', 'VARIANCE'];
-            const rows = filteredData.map((d, i) => [
-                i + 1, `"${d.sku}"`, `"${d.barcode}"`, `"${d.desc.replace(/"/g, '""')}"`,
-                `"${d.alamat}"`, d.price, `"${d.ks}"`, d.sys, d.phy !== null ? d.phy : '',
-                d.phy !== null ? (d.phy - d.sys) : ''
-            ]);
+            const headers = ['NO', 'SKU', 'BARCODE', 'DESKRIPSI', 'ALAMAT', 'HARGA', 'KS', 'QTY_SYS', 'QTY_PHY', 'VARIANCE', 'STATUS', 'VERIFIKASI'];
+            const rows = filteredData.map((d, i) => {
+                const varVal = d.phy !== null ? (d.phy - d.sys) : '';
+                const statusVal = d.phy === null ? 'Belum Cek' : (varVal === 0 ? 'Akurat' : (varVal < 0 ? `Minus (${varVal})` : `Plus (+${varVal})`));
+                const verifyVal = verificationData[d.sku] || '';
+                return [
+                    i + 1, `"${d.sku}"`, `"${d.barcode}"`, `"${d.desc.replace(/"/g, '""')}"`,
+                    `"${d.alamat}"`, d.price, `"${d.ks}"`, d.sys, d.phy !== null ? d.phy : '',
+                    varVal, `"${statusVal}"`, `"${verifyVal}"`
+                ];
+            });
 
             let csv = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
             const link = document.createElement('a');
