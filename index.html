@@ -71,6 +71,56 @@
             <span id="syncStatusText"></span>
         </div>
 
+        <!-- KPI CARDS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 no-print">
+            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between shadow-sm">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Total SKU</p>
+                    <h3 id="cardTotalSku" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                </div>
+                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-barcode"></i>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 p-4 flex flex-col justify-between shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">Progres Checking</p>
+                        <h3 id="cardProgressPercent" class="text-2xl font-bold text-slate-800 mt-1">0%</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-list-check"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                        <div id="progressBar" class="bg-indigo-600 h-1.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between shadow-sm">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Akurasi SBC</p>
+                    <h3 id="cardAccuracy" class="text-2xl font-bold text-emerald-600 mt-1">0%</h3>
+                </div>
+                <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-bullseye"></i>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between shadow-sm">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Total Variance</p>
+                    <h3 id="cardTotalVariance" class="text-2xl font-bold text-slate-800 mt-1">0 <span class="text-xs">Pcs</span></h3>
+                </div>
+                <div class="w-10 h-10 bg-slate-50 text-slate-600 rounded-lg flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+            </div>
+        </div>
+
         <!-- CONTROLS & SLICER FILTER -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 mb-6 shadow-sm no-print">
             <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
@@ -102,8 +152,7 @@
                 </div>
 
                 <!-- ACTION BUTTONS -->
-                <div class="md:col-span-4 flex space-x-2">
-                    <!-- Hidden file input untuk TXT -->
+                <div class="md:col-span-4 flex space-x-1.5">
                     <input type="file" id="fileTxt" accept=".txt" class="hidden" onchange="handleFileUpload(event)">
                     
                     <button onclick="document.getElementById('fileTxt').click()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] sm:text-xs font-semibold py-2 rounded-lg flex items-center justify-center space-x-1" title="Upload Scan TXT">
@@ -111,16 +160,16 @@
                         <span class="hidden xl:inline">Upload TXT</span>
                     </button>
 
-                    <button onclick="copyDataForGS()" class="flex-1 bg-teal-600 hover:bg-teal-500 text-white text-[10px] sm:text-xs font-semibold py-2 rounded-lg flex items-center justify-center space-x-1" title="Copy untuk di-paste ke GS">
+                    <button onclick="copyDataForGS()" class="flex-1 bg-teal-600 hover:bg-teal-500 text-white text-[10px] sm:text-xs font-semibold py-2 rounded-lg flex items-center justify-center space-x-1" title="Copy untuk GS">
                         <i class="fa-solid fa-copy"></i>
-                        <span class="hidden xl:inline">Copy ke GS</span>
+                        <span class="hidden xl:inline">Copy GS</span>
                     </button>
                     
-                    <button onclick="exportToCSV()" class="w-10 sm:w-12 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold py-2 rounded-lg flex items-center justify-center" title="Export CSV">
+                    <button onclick="exportToCSV()" class="w-9 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold py-2 rounded-lg flex items-center justify-center" title="Export CSV">
                         <i class="fa-solid fa-file-csv"></i>
                     </button>
                     
-                    <button onclick="window.print()" class="w-10 sm:w-12 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold py-2 rounded-lg flex items-center justify-center" title="Cetak Printsheet">
+                    <button onclick="window.print()" class="w-9 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold py-2 rounded-lg flex items-center justify-center" title="Cetak Printsheet">
                         <i class="fa-solid fa-print"></i>
                     </button>
                 </div>
@@ -134,12 +183,15 @@
                     <tr class="bg-slate-100 text-slate-600 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
                         <th class="py-3 px-3 text-center">No</th>
                         <th class="py-3 px-3">SKU</th>
+                        <th class="py-3 px-3">Barcode</th>
                         <th class="py-3 px-3 min-w-[200px]">Deskripsi</th>
                         <th class="py-3 px-3">Alamat</th>
                         <th class="py-3 px-3 text-right">Price</th>
                         <th class="py-3 px-3 text-center">KS</th>
                         <th class="py-3 px-3 text-right">SYS</th>
                         <th class="py-3 px-3 text-center w-20">PHY</th>
+                        <th class="py-3 px-3 text-right">VAR</th>
+                        <th class="py-3 px-3 text-center">Status</th>
                     </tr>
                 </thead>
                 <tbody id="inventoryTableBody" class="divide-y divide-slate-200 text-xs text-slate-700">
@@ -147,7 +199,7 @@
             </table>
             <div id="emptyState" class="hidden p-8 text-center text-slate-400 no-print">
                 <i class="fa-solid fa-box-open text-3xl mb-2"></i>
-                <p class="text-sm font-medium" id="emptyStateMsg">Tidak ada data. Silakan Sync DB atau Upload TXT.</p>
+                <p class="text-sm font-medium">Tidak ada data SKU yang cocok.</p>
             </div>
         </div>
 
@@ -166,8 +218,8 @@
         ];
 
         let activeSheet = AVAILABLE_SHEETS[0].name;
-        let rawData = []; // Data asli dari Google Sheet (Database)
-        let displayData = []; // Data yang ditampilin di tabel (bisa hasil filter GS atau hasil TXT)
+        let rawData = [];
+        let filteredData = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             initSlicerOptions();
@@ -206,7 +258,7 @@
                 
                 if (json.table && json.table.rows) {
                     rawData = parseRowsByColumnStructure(json.table.rows);
-                    showStatusAlert(`Database ${activeSheet} berhasil ditarik! Siap di-mix sama file TXT.`, 'bg-emerald-50 text-emerald-700 border border-emerald-200');
+                    showStatusAlert(`Database ${activeSheet} berhasil ditarik!`, 'bg-emerald-50 text-emerald-700 border border-emerald-200');
                 } else {
                     rawData = [];
                 }
@@ -248,7 +300,6 @@
             return parsed;
         }
 
-        // FITUR BARU: BACA FILE TXT
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -257,82 +308,65 @@
             reader.onload = function(e) {
                 const content = e.target.result;
                 const lines = content.split(/\r?\n/);
-                
                 let scannedItems = [];
 
                 lines.forEach(line => {
                     if (!line.trim()) return;
-                    
-                    // Format dari scanner lu: s,alamat,sku
                     const parts = line.split(',');
                     if (parts.length >= 3) {
                         const alamatScan = parts[1].trim();
                         const skuScan = parts[2].trim();
                         
-                        // Buang duplikat SKU biar printsheet rapi
                         const existing = scannedItems.find(item => item.sku === skuScan);
                         if (!existing) {
-                            // Cari data lengkap (Desc & Sys) di database yang udah ditarik
                             const dbMatch = rawData.find(item => item.sku === skuScan);
-                            
                             if (dbMatch) {
                                 scannedItems.push({
-                                    sku: skuScan,
-                                    barcode: dbMatch.barcode,
-                                    desc: dbMatch.desc,
-                                    alamat: alamatScan, // Pake alamat aktual hasil scan
-                                    price: dbMatch.price,
-                                    ks: dbMatch.ks,
-                                    sys: dbMatch.sys, // Ambil Qty sistem dari DB
-                                    phy: null // Dikosongin sesuai request lu
+                                    sku: skuScan, barcode: dbMatch.barcode, desc: dbMatch.desc,
+                                    alamat: alamatScan, price: dbMatch.price, ks: dbMatch.ks,
+                                    sys: dbMatch.sys, phy: null
                                 });
                             } else {
-                                // Kalau ga ketemu di database aktif
                                 scannedItems.push({
-                                    sku: skuScan, barcode: skuScan,
-                                    desc: "SKU TIDAK ADA DI DB",
-                                    alamat: alamatScan, price: 0, ks: "-",
-                                    sys: 0, phy: null
+                                    sku: skuScan, barcode: skuScan, desc: "SKU TIDAK ADA DI DB",
+                                    alamat: alamatScan, price: 0, ks: "-", sys: 0, phy: null
                                 });
                             }
                         }
                     }
                 });
 
-                // Timpa tabel dengan hasil olahan TXT
-                displayData = scannedItems;
-                renderTable();
-                
-                event.target.value = ''; // Reset input
-                showStatusAlert(`Berhasil memproses ${scannedItems.length} SKU dari file TXT!`, 'bg-emerald-50 text-emerald-700 border border-emerald-200');
+                rawData = scannedItems; // Timpa data aktif dengan hasil scan TXT
+                applyFilters();
+                event.target.value = '';
+                showStatusAlert(`Berhasil memuat ${scannedItems.length} SKU dari file TXT!`, 'bg-emerald-50 text-emerald-700 border border-emerald-200');
             };
             reader.readAsText(file);
         }
 
-        // FITUR BARU: COPY PASTE LANGSUNG KE GS
         function copyDataForGS() {
-            if (displayData.length === 0) return alert('Tidak ada data untuk di-copy.');
-            
+            if (filteredData.length === 0) return alert('Tidak ada data untuk di-copy.');
             let tsv = '';
-            displayData.forEach(item => {
-                // Susunan kolom dibuat persis kayak GS lu: SKU | DESC | ALAMAT | PRICE | KS | SYS | PHY (Kosong)
+            filteredData.forEach(item => {
                 tsv += `${item.sku}\t${item.desc}\t${item.alamat}\t${item.price}\t${item.ks}\t${item.sys}\t\n`;
             });
-            
             navigator.clipboard.writeText(tsv).then(() => {
-                alert('Berhasil di-copy, bro! Silakan paste (Ctrl+V) di baris kosong Google Sheet lu.');
+                alert('Berhasil di-copy! Silakan paste (Ctrl+V) di Google Sheet.');
             }).catch(err => {
                 alert('Gagal copy: ' + err);
             });
         }
 
         function applyFilters() {
-            // Ini kalau lu lagi nggak pakai file TXT dan pengen liat raw data aja
             const searchValue = document.getElementById('searchInput').value.toLowerCase().trim();
             const statusValue = document.getElementById('filterStatus').value;
 
-            displayData = rawData.filter(item => {
-                const matchSearch = item.sku.toLowerCase().includes(searchValue) || item.desc.toLowerCase().includes(searchValue);
+            filteredData = rawData.filter(item => {
+                const matchSearch = item.sku.toLowerCase().includes(searchValue) ||
+                                    item.barcode.toLowerCase().includes(searchValue) ||
+                                    item.desc.toLowerCase().includes(searchValue) ||
+                                    item.alamat.toLowerCase().includes(searchValue);
+
                 let matchStatus = true;
                 const varVal = item.phy !== null ? (item.phy - item.sys) : null;
 
@@ -343,7 +377,9 @@
 
                 return matchSearch && matchStatus;
             });
+
             renderTable();
+            calculateMetrics();
         }
 
         function renderTable() {
@@ -351,21 +387,42 @@
             const emptyState = document.getElementById('emptyState');
             tbody.innerHTML = '';
 
-            if (displayData.length === 0) {
+            if (filteredData.length === 0) {
                 emptyState.classList.remove('hidden');
                 return;
             }
             emptyState.classList.add('hidden');
 
-            displayData.forEach((item, index) => {
+            filteredData.forEach((item, index) => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition-colors border-b border-slate-100";
+
                 const isChecked = item.phy !== null;
+                const variance = isChecked ? (item.phy - item.sys) : 0;
                 const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.price);
+
+                let varColor = 'text-slate-400';
+                if (isChecked) {
+                    if (variance === 0) varColor = 'text-emerald-600 font-bold';
+                    else if (variance < 0) varColor = 'text-rose-600 font-bold';
+                    else varColor = 'text-amber-600 font-bold';
+                }
+
+                let badgeHtml = '';
+                if (!isChecked) {
+                    badgeHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">Belum Cek</span>`;
+                } else if (variance === 0) {
+                    badgeHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">Akurat</span>`;
+                } else if (variance < 0) {
+                    badgeHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800 border border-rose-200">Minus (${variance})</span>`;
+                } else {
+                    badgeHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">Plus (+${variance})</span>`;
+                }
 
                 tr.innerHTML = `
                     <td class="py-2.5 px-3 text-center text-slate-400 font-mono">${index + 1}</td>
                     <td class="py-2.5 px-3 font-mono font-bold text-slate-900">${item.sku}</td>
+                    <td class="py-2.5 px-3 font-mono text-slate-500">${item.barcode}</td>
                     <td class="py-2.5 px-3 font-medium text-slate-800">${item.desc}</td>
                     <td class="py-2.5 px-3 font-mono text-slate-500">${item.alamat}</td>
                     <td class="py-2.5 px-3 text-right font-mono text-slate-600">${formattedPrice}</td>
@@ -376,31 +433,53 @@
                     <td class="py-2.5 px-3 text-center">
                         ${isChecked ? `<span class="font-mono font-bold text-brand-700 text-base">${item.phy}</span>` : '<span class="print-box w-10 mx-auto border-b-2 border-slate-300"></span>'}
                     </td>
+                    <td class="py-2.5 px-3 text-right font-mono ${varColor}">
+                        ${isChecked ? (variance > 0 ? '+' + variance : variance) : '-'}
+                    </td>
+                    <td class="py-2.5 px-3 text-center">${badgeHtml}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
-        
+
+        function calculateMetrics() {
+            const totalSku = filteredData.length;
+            const checkedItems = filteredData.filter(d => d.phy !== null);
+            const totalChecked = checkedItems.length;
+
+            const progressPercent = totalSku > 0 ? Math.round((totalChecked / totalSku) * 100) : 0;
+            const accurateItems = checkedItems.filter(d => (d.phy - d.sys) === 0);
+            const accuracyPercent = totalChecked > 0 ? Math.round((accurateItems.length / totalChecked) * 100) : 0;
+            const totalVariance = checkedItems.reduce((acc, curr) => acc + (curr.phy - curr.sys), 0);
+
+            document.getElementById('cardTotalSku').innerText = totalSku;
+            document.getElementById('cardProgressPercent').innerText = `${progressPercent}%`;
+            document.getElementById('progressBar').style.width = `${progressPercent}%`;
+            document.getElementById('cardAccuracy').innerText = `${accuracyPercent}%`;
+            document.getElementById('cardTotalVariance').innerText = `${totalVariance > 0 ? '+' : ''}${totalVariance} Pcs`;
+        }
+
+        function exportToCSV() {
+            if (filteredData.length === 0) return alert('Tidak ada data.');
+            const headers = ['NO', 'SKU', 'BARCODE', 'DESKRIPSI', 'ALAMAT', 'HARGA', 'KS', 'QTY_SYS', 'QTY_PHY', 'VARIANCE'];
+            const rows = filteredData.map((d, i) => [
+                i + 1, `"${d.sku}"`, `"${d.barcode}"`, `"${d.desc.replace(/"/g, '""')}"`,
+                `"${d.alamat}"`, d.price, `"${d.ks}"`, d.sys, d.phy !== null ? d.phy : '',
+                d.phy !== null ? (d.phy - d.sys) : ''
+            ]);
+            let csv = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+            const link = document.createElement('a');
+            link.href = encodeURI(csv);
+            link.download = `SBC_${activeSheet}_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
         function showStatusAlert(msg, colorClass) {
             const alertBox = document.getElementById('syncStatusAlert');
             document.getElementById('syncStatusText').innerText = msg;
             alertBox.className = `mb-4 p-3 rounded-lg text-xs font-medium flex items-center justify-between no-print ${colorClass}`;
             alertBox.classList.remove('hidden');
             setTimeout(() => alertBox.classList.add('hidden'), 4000);
-        }
-
-        // Export CSV dihapus dikit fungsinya jadi support data TXT juga
-        function exportToCSV() {
-            if (displayData.length === 0) return alert('Tidak ada data.');
-            const headers = ['NO', 'SKU', 'DESKRIPSI', 'ALAMAT', 'HARGA', 'KS', 'QTY_SYS', 'QTY_PHY'];
-            const rows = displayData.map((d, i) => [
-                i + 1, `"${d.sku}"`, `"${d.desc.replace(/"/g, '""')}"`, `"${d.alamat}"`, d.price, `"${d.ks}"`, d.sys, d.phy !== null ? d.phy : ''
-            ]);
-            let csv = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-            const link = document.createElement('a');
-            link.href = encodeURI(csv);
-            link.download = `Data_Printsheet_${new Date().toISOString().slice(0,10)}.csv`;
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
     </script>
 </body>
