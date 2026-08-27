@@ -18,7 +18,6 @@
         }
     </script>
     <style>
-        /* PENGATURAN KHUSUS UNTUK CETAK KERTAS (PRINTSHEET) */
         @media print {
             @page { size: portrait; margin: 8mm; }
             body { background-color: white !important; color: black !important; font-size: 9px !important; }
@@ -57,9 +56,9 @@
                 <select id="storeSelect" class="bg-slate-800 text-xs font-semibold text-slate-200 border border-slate-700 rounded-lg px-3 py-2">
                     <option value="ASMD" selected>Toko ASMD (Active)</option>
                 </select>
-                <button id="btnSync" onclick="fetchSheetData()" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center space-x-2">
+                <button id="btnSync" onclick="fetchAllDatabases()" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center space-x-2">
                     <i class="fa-solid fa-rotate" id="syncIcon"></i>
-                    <span class="hidden sm:inline">Sync DB</span>
+                    <span class="hidden sm:inline">Sync DB All</span>
                 </button>
             </div>
         </div>
@@ -125,7 +124,6 @@
         <div class="bg-white p-4 rounded-xl border border-slate-200 mb-6 shadow-sm no-print">
             <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
                 
-                <!-- SLICER SHEET / RAK -->
                 <div class="md:col-span-3">
                     <div class="relative">
                         <i class="fa-solid fa-layer-group absolute left-3 top-3 text-brand-600 text-xs"></i>
@@ -134,13 +132,11 @@
                     </div>
                 </div>
 
-                <!-- SEARCH BAR -->
                 <div class="md:col-span-3 relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
                     <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Cari SKU, Barcode..." class="w-full pl-8 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
                 </div>
 
-                <!-- STATUS FILTER -->
                 <div class="md:col-span-2">
                     <select id="filterStatus" onchange="applyFilters()" class="w-full py-2 px-3 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-700">
                         <option value="ALL">Semua Status</option>
@@ -151,7 +147,6 @@
                     </select>
                 </div>
 
-                <!-- ACTION BUTTONS -->
                 <div class="md:col-span-4 flex space-x-1.5">
                     <input type="file" id="fileTxt" accept=".txt" class="hidden" onchange="handleFileUpload(event)">
                     
@@ -218,12 +213,13 @@
         ];
 
         let activeSheet = AVAILABLE_SHEETS[0].name;
+        let masterDatabase = {};
         let rawData = [];
         let filteredData = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             initSlicerOptions();
-            fetchSheetData();
+            fetchAllDatabases();
         });
 
         function initSlicerOptions() {
@@ -240,31 +236,33 @@
 
         function changeSheet(selectedSheetName) {
             activeSheet = selectedSheetName;
-            fetchSheetData();
+            rawData = masterDatabase[activeSheet] || [];
+            applyFilters();
         }
 
-        async function fetchSheetData() {
+        async function fetchAllDatabases() {
             const syncIcon = document.getElementById('syncIcon');
             syncIcon.classList.add('fa-spin');
-            showStatusAlert(`Menarik database dari area: ${activeSheet}...`, 'bg-blue-50 text-blue-700 border border-blue-200');
-
-            const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(activeSheet)}`;
+            showStatusAlert(`Menarik database dari seluruh sheet...`, 'bg-blue-50 text-blue-700 border border-blue-200');
 
             try {
-                const response = await fetch(gvizUrl);
-                const text = await response.text();
-                const jsonText = text.substring(47, text.length - 2);
-                const json = JSON.parse(jsonText);
-                
-                if (json.table && json.table.rows) {
-                    rawData = parseRowsByColumnStructure(json.table.rows);
-                    showStatusAlert(`Database ${activeSheet} berhasil ditarik!`, 'bg-emerald-50 text-emerald-700 border border-emerald-200');
-                } else {
-                    rawData = [];
+                for (const sheet of AVAILABLE_SHEETS) {
+                    const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheet.name)}`;
+                    const response = await fetch(gvizUrl);
+                    const text = await response.text();
+                    const jsonText = text.substring(47, text.length - 2);
+                    const json = JSON.parse(jsonText);
+                    
+                    if (json.table && json.table.rows) {
+                        masterDatabase[sheet.name] = parseRowsByColumnStructure(json.table.rows);
+                    } else {
+                        masterDatabase[sheet.name] = [];
+                    }
                 }
+                rawData = masterDatabase[activeSheet] || [];
+                showStatusAlert(`Semua database berhasil disinkronkan!`, 'bg-emerald-50 text-emerald-700 border border-emerald-200');
             } catch (error) {
-                showStatusAlert('Gagal membaca sheet database.', 'bg-rose-50 text-rose-700 border border-rose-200');
-                rawData = [];
+                showStatusAlert('Gagal membaca database Google Sheet.', 'bg-rose-50 text-rose-700 border border-rose-200');
             } finally {
                 syncIcon.classList.remove('fa-spin');
                 applyFilters();
@@ -276,7 +274,7 @@
             rows.forEach((row) => {
                 const c = row.c;
                 if (!c || c.length === 0) return;
-                const sku = c[0] && c[0].v !== null ? String(c[0].v) : '';
+                const sku = c[0] && c[0].v !== null ? String(c[0].v).trim() : '';
                 if (!sku || sku.toUpperCase() === 'SKU') return;
 
                 const desc = c[1] && c[1].v !== null ? String(c[1].v) : '-';
@@ -310,8 +308,15 @@
                 const lines = content.split(/\r?\n/);
                 let scannedItems = [];
 
+                let allMasterItems = [];
+                Object.values(masterDatabase).forEach(sheetArr => {
+                    allMasterItems = allMasterItems.concat(sheetArr);
+                });
+
                 lines.forEach(line => {
                     if (!line.trim()) return;
+                    
+                    // Format TXT scanner: S,alamat,sku (contoh: S,AG02-01,8979474)
                     const parts = line.split(',');
                     if (parts.length >= 3) {
                         const alamatScan = parts[1].trim();
@@ -319,12 +324,17 @@
                         
                         const existing = scannedItems.find(item => item.sku === skuScan);
                         if (!existing) {
-                            const dbMatch = rawData.find(item => item.sku === skuScan);
+                            const dbMatch = allMasterItems.find(item => item.sku === skuScan);
                             if (dbMatch) {
                                 scannedItems.push({
-                                    sku: skuScan, barcode: dbMatch.barcode, desc: dbMatch.desc,
-                                    alamat: alamatScan, price: dbMatch.price, ks: dbMatch.ks,
-                                    sys: dbMatch.sys, phy: null
+                                    sku: skuScan, 
+                                    barcode: dbMatch.barcode, 
+                                    desc: dbMatch.desc,
+                                    alamat: alamatScan, 
+                                    price: dbMatch.price, 
+                                    ks: dbMatch.ks,
+                                    sys: dbMatch.sys, 
+                                    phy: null 
                                 });
                             } else {
                                 scannedItems.push({
@@ -336,7 +346,7 @@
                     }
                 });
 
-                rawData = scannedItems; // Timpa data aktif dengan hasil scan TXT
+                rawData = scannedItems; 
                 applyFilters();
                 event.target.value = '';
                 showStatusAlert(`Berhasil memuat ${scannedItems.length} SKU dari file TXT!`, 'bg-emerald-50 text-emerald-700 border border-emerald-200');
