@@ -203,7 +203,7 @@
 
     <script>
         const SPREADSHEET_ID = '1Ft7xFLiaHN5KDNZxBvrmsOl_o2K2UhMn0B21tPB8V70';
-        let masterDatabase = {}; // Menyimpan data dari sheet DATABASE
+        let masterDatabase = {};
         let rawData = [];
         let filteredData = [];
 
@@ -217,7 +217,6 @@
             showStatusAlert(`Menarik database dari Google Sheet...`, 'bg-blue-50 text-blue-700 border border-blue-200');
 
             try {
-                // Hanya menarik sheet 'DATABASE' utama untuk pencocokan SKU/Deskripsi/Harga
                 const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=DATABASE`;
                 const response = await fetch(gvizUrl);
                 const text = await response.text();
@@ -244,20 +243,20 @@
                 if (!c || c.length === 0) return;
                 
                 // Struktur sheet DATABASE:
-                // Col A (0): SKU, Col B (1): Alamat, Col C (2): Price, Col D (3): KS, Col G (6): Deskripsi
+                // Col A (0): SKU, Col B (1): Alamat, Col C (2): Price, Col D (3): Qty SYS, Col G (6): Deskripsi
                 const sku = c[0] && c[0].v !== null ? String(c[0].v).trim() : '';
                 if (!sku || sku.toUpperCase() === 'SKU') return;
 
                 const price = c[2] && c[2].v !== null ? Number(c[2].v) : 0;
-                const ks = c[3] && c[3].v !== null ? String(c[3].v) : '-';
+                const sys = c[3] && c[3].v !== null ? Number(c[3].v) : 0; // Kolom D adalah Qty Sistem (SYS)
                 const desc = c[6] && c[6].v !== null ? String(c[6].v) : '-';
 
                 dbMap[sku] = {
                     sku: sku,
                     desc: desc,
                     price: isNaN(price) ? 0 : price,
-                    ks: ks,
-                    sys: 0 // Default sistem
+                    ks: '-', // Default jika kolom KS tidak di-mapping khusus
+                    sys: isNaN(sys) ? 0 : sys
                 };
             });
             return dbMap;
@@ -276,7 +275,6 @@
                 lines.forEach(line => {
                     if (!line.trim()) return;
                     
-                    // Format TXT scanner: S,alamat,sku (contoh: S,AG02-01,8979474)
                     const parts = line.split(',');
                     if (parts.length >= 3) {
                         const alamatScan = parts[1].trim();
@@ -284,7 +282,6 @@
                         
                         const existing = scannedItems.find(item => item.sku === skuScan);
                         if (!existing) {
-                            // Cocokkan dengan masterDatabase Google Sheet
                             const dbMatch = masterDatabase[skuScan];
                             if (dbMatch) {
                                 scannedItems.push({
