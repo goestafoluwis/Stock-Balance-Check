@@ -204,6 +204,7 @@
         const SPREADSHEET_ID = '1Ft7xFLiaHN5KDNZxBvrmsOl_o2K2UhMn0B21tPB8V70';
         
         const AVAILABLE_SHEETS = [
+            { name: 'DATABASE', label: 'DATABASE UTAMA' },
             { name: 'KS', label: 'KEEPSTOCK (KS)' },
             { name: 'OLAHAN NUSANTARA', label: 'OLAHAN NUSANTARA' },
             { name: 'KASIR', label: 'KASIR' },
@@ -254,7 +255,7 @@
                     const json = JSON.parse(jsonText);
                     
                     if (json.table && json.table.rows) {
-                        masterDatabase[sheet.name] = parseRowsByColumnStructure(json.table.rows);
+                        masterDatabase[sheet.name] = parseRowsForDatabase(json.table.rows);
                     } else {
                         masterDatabase[sheet.name] = [];
                     }
@@ -269,30 +270,32 @@
             }
         }
 
-        function parseRowsByColumnStructure(rows) {
+        function parseRowsForDatabase(rows) {
             const parsed = [];
             rows.forEach((row) => {
                 const c = row.c;
                 if (!c || c.length === 0) return;
+                
+                // Berdasarkan struktur sheet DATABASE:
+                // Col A (0): SKU, Col B (1): Alamat, Col C (2): Price, Col D (3): KS, Col G (6): Deskripsi
                 const sku = c[0] && c[0].v !== null ? String(c[0].v).trim() : '';
                 if (!sku || sku.toUpperCase() === 'SKU') return;
 
-                const desc = c[1] && c[1].v !== null ? String(c[1].v) : '-';
-                const alamat = c[2] && c[2].v !== null ? String(c[2].v) : '-';
-                const price = c[3] && c[3].v !== null ? Number(c[3].v) : 0;
-                const ks = c[4] && c[4].v !== null ? String(c[4].v) : '-';
-                const sys = c[5] && c[5].v !== null ? Number(c[5].v) : 0;
-                const phyRaw = c[6] ? c[6].v : null;
+                const alamat = c[1] && c[1].v !== null ? String(c[1].v) : '-';
+                const price = c[2] && c[2].v !== null ? Number(c[2].v) : 0;
+                const ks = c[3] && c[3].v !== null ? String(c[3].v) : '-';
+                const desc = c[6] && c[6].v !== null ? String(c[6].v) : (c[1] && c[1].v !== null ? String(c[1].v) : '-'); 
                 
-                let phy = null;
-                if (phyRaw !== null && phyRaw !== undefined && phyRaw !== '') {
-                    phy = Number(phyRaw);
-                }
-
+                // Jika sheet lain memiliki struktur berbeda, bisa disesuaikan, tapi untuk DATABASE utama:
                 parsed.push({
-                    sku: sku, barcode: sku, desc: desc, alamat: alamat,
-                    price: isNaN(price) ? 0 : price, ks: ks,
-                    sys: isNaN(sys) ? 0 : sys, phy: isNaN(phy) ? null : phy
+                    sku: sku, 
+                    barcode: sku, 
+                    desc: desc, 
+                    alamat: alamat,
+                    price: isNaN(price) ? 0 : price, 
+                    ks: ks,
+                    sys: 0, // Default system stock jika belum ada kolom khusus
+                    phy: null 
                 });
             });
             return parsed;
@@ -316,7 +319,6 @@
                 lines.forEach(line => {
                     if (!line.trim()) return;
                     
-                    // Format TXT scanner: S,alamat,sku (contoh: S,AG02-01,8979474)
                     const parts = line.split(',');
                     if (parts.length >= 3) {
                         const alamatScan = parts[1].trim();
