@@ -56,9 +56,9 @@
                 <select id="storeSelect" class="bg-slate-800 text-xs font-semibold text-slate-200 border border-slate-700 rounded-lg px-3 py-2">
                     <option value="ASMD" selected>Toko ASMD (Active)</option>
                 </select>
-                <button id="btnSync" onclick="fetchAllDatabases()" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center space-x-2">
+                <button id="btnSync" onclick="fetchMasterDatabase()" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center space-x-2">
                     <i class="fa-solid fa-rotate" id="syncIcon"></i>
-                    <span class="hidden sm:inline">Sync DB All</span>
+                    <span class="hidden sm:inline">Sync DB</span>
                 </button>
             </div>
         </div>
@@ -127,7 +127,8 @@
                 <div class="md:col-span-3">
                     <div class="relative">
                         <i class="fa-solid fa-layer-group absolute left-3 top-3 text-brand-600 text-xs"></i>
-                        <select id="sheetSlicer" onchange="changeSheet(this.value)" class="w-full pl-8 pr-4 py-2 bg-brand-50/50 border border-brand-200 font-semibold rounded-lg text-xs text-brand-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <select id="sheetSlicer" class="w-full pl-8 pr-4 py-2 bg-brand-50/50 border border-brand-200 font-semibold rounded-lg text-xs text-brand-900 focus:bg-white focus:outline-none">
+                            <option value="ALL">Mode: Hasil Upload TXT</option>
                         </select>
                     </div>
                 </div>
@@ -192,9 +193,9 @@
                 <tbody id="inventoryTableBody" class="divide-y divide-slate-200 text-xs text-slate-700">
                 </tbody>
             </table>
-            <div id="emptyState" class="hidden p-8 text-center text-slate-400 no-print">
+            <div id="emptyState" class="p-8 text-center text-slate-400 no-print">
                 <i class="fa-solid fa-box-open text-3xl mb-2"></i>
-                <p class="text-sm font-medium">Tidak ada data SKU yang cocok.</p>
+                <p class="text-sm font-medium">Belum ada file TXT yang di-upload. Silakan klik "Upload TXT".</p>
             </div>
         </div>
 
@@ -202,103 +203,64 @@
 
     <script>
         const SPREADSHEET_ID = '1Ft7xFLiaHN5KDNZxBvrmsOl_o2K2UhMn0B21tPB8V70';
-        
-        const AVAILABLE_SHEETS = [
-            { name: 'DATABASE', label: 'DATABASE UTAMA' },
-            { name: 'KS', label: 'KEEPSTOCK (KS)' },
-            { name: 'OLAHAN NUSANTARA', label: 'OLAHAN NUSANTARA' },
-            { name: 'KASIR', label: 'KASIR' },
-            { name: 'AG01/Gondola Promo', label: 'AG01 / GONDOLA PROMO' },
-            { name: 'STATIONERY', label: 'STATIONERY' },
-            { name: 'DATA AREA', label: 'DATA AREA' }
-        ];
-
-        let activeSheet = AVAILABLE_SHEETS[0].name;
-        let masterDatabase = {};
+        let masterDatabase = {}; // Menyimpan data dari sheet DATABASE
         let rawData = [];
         let filteredData = [];
 
         document.addEventListener('DOMContentLoaded', () => {
-            initSlicerOptions();
-            fetchAllDatabases();
+            fetchMasterDatabase();
         });
 
-        function initSlicerOptions() {
-            const slicerSelect = document.getElementById('sheetSlicer');
-            slicerSelect.innerHTML = '';
-            AVAILABLE_SHEETS.forEach(sheet => {
-                const opt = document.createElement('option');
-                opt.value = sheet.name;
-                opt.innerText = `Area: ${sheet.label}`;
-                if(sheet.name === activeSheet) opt.selected = true;
-                slicerSelect.appendChild(opt);
-            });
-        }
-
-        function changeSheet(selectedSheetName) {
-            activeSheet = selectedSheetName;
-            rawData = masterDatabase[activeSheet] || [];
-            applyFilters();
-        }
-
-        async function fetchAllDatabases() {
+        async function fetchMasterDatabase() {
             const syncIcon = document.getElementById('syncIcon');
             syncIcon.classList.add('fa-spin');
-            showStatusAlert(`Menarik database dari seluruh sheet...`, 'bg-blue-50 text-blue-700 border border-blue-200');
+            showStatusAlert(`Menarik database dari Google Sheet...`, 'bg-blue-50 text-blue-700 border border-blue-200');
 
             try {
-                for (const sheet of AVAILABLE_SHEETS) {
-                    const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheet.name)}`;
-                    const response = await fetch(gvizUrl);
-                    const text = await response.text();
-                    const jsonText = text.substring(47, text.length - 2);
-                    const json = JSON.parse(jsonText);
-                    
-                    if (json.table && json.table.rows) {
-                        masterDatabase[sheet.name] = parseRowsForDatabase(json.table.rows);
-                    } else {
-                        masterDatabase[sheet.name] = [];
-                    }
+                // Hanya menarik sheet 'DATABASE' utama untuk pencocokan SKU/Deskripsi/Harga
+                const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=DATABASE`;
+                const response = await fetch(gvizUrl);
+                const text = await response.text();
+                const jsonText = text.substring(47, text.length - 2);
+                const json = JSON.parse(jsonText);
+                
+                if (json.table && json.table.rows) {
+                    masterDatabase = parseDatabaseRows(json.table.rows);
+                    showStatusAlert(`Database berhasil disinkronkan (${Object.keys(masterDatabase).length} SKU)!`, 'bg-emerald-50 text-emerald-700 border border-emerald-200');
+                } else {
+                    showStatusAlert(`Gagal memuat baris database.`, 'bg-rose-50 text-rose-700 border border-rose-200');
                 }
-                rawData = masterDatabase[activeSheet] || [];
-                showStatusAlert(`Semua database berhasil disinkronkan!`, 'bg-emerald-50 text-emerald-700 border border-emerald-200');
             } catch (error) {
                 showStatusAlert('Gagal membaca database Google Sheet.', 'bg-rose-50 text-rose-700 border border-rose-200');
             } finally {
                 syncIcon.classList.remove('fa-spin');
-                applyFilters();
             }
         }
 
-        function parseRowsForDatabase(rows) {
-            const parsed = [];
+        function parseDatabaseRows(rows) {
+            const dbMap = {};
             rows.forEach((row) => {
                 const c = row.c;
                 if (!c || c.length === 0) return;
                 
-                // Berdasarkan struktur sheet DATABASE:
+                // Struktur sheet DATABASE:
                 // Col A (0): SKU, Col B (1): Alamat, Col C (2): Price, Col D (3): KS, Col G (6): Deskripsi
                 const sku = c[0] && c[0].v !== null ? String(c[0].v).trim() : '';
                 if (!sku || sku.toUpperCase() === 'SKU') return;
 
-                const alamat = c[1] && c[1].v !== null ? String(c[1].v) : '-';
                 const price = c[2] && c[2].v !== null ? Number(c[2].v) : 0;
                 const ks = c[3] && c[3].v !== null ? String(c[3].v) : '-';
-                const desc = c[6] && c[6].v !== null ? String(c[6].v) : (c[1] && c[1].v !== null ? String(c[1].v) : '-'); 
-                
-                // Jika sheet lain memiliki struktur berbeda, bisa disesuaikan, tapi untuk DATABASE utama:
-                parsed.push({
-                    sku: sku, 
-                    barcode: sku, 
-                    desc: desc, 
-                    alamat: alamat,
-                    price: isNaN(price) ? 0 : price, 
+                const desc = c[6] && c[6].v !== null ? String(c[6].v) : '-';
+
+                dbMap[sku] = {
+                    sku: sku,
+                    desc: desc,
+                    price: isNaN(price) ? 0 : price,
                     ks: ks,
-                    sys: 0, // Default system stock jika belum ada kolom khusus
-                    phy: null 
-                });
+                    sys: 0 // Default sistem
+                };
             });
-            return parsed;
+            return dbMap;
         }
 
         function handleFileUpload(event) {
@@ -311,14 +273,10 @@
                 const lines = content.split(/\r?\n/);
                 let scannedItems = [];
 
-                let allMasterItems = [];
-                Object.values(masterDatabase).forEach(sheetArr => {
-                    allMasterItems = allMasterItems.concat(sheetArr);
-                });
-
                 lines.forEach(line => {
                     if (!line.trim()) return;
                     
+                    // Format TXT scanner: S,alamat,sku (contoh: S,AG02-01,8979474)
                     const parts = line.split(',');
                     if (parts.length >= 3) {
                         const alamatScan = parts[1].trim();
@@ -326,11 +284,12 @@
                         
                         const existing = scannedItems.find(item => item.sku === skuScan);
                         if (!existing) {
-                            const dbMatch = allMasterItems.find(item => item.sku === skuScan);
+                            // Cocokkan dengan masterDatabase Google Sheet
+                            const dbMatch = masterDatabase[skuScan];
                             if (dbMatch) {
                                 scannedItems.push({
                                     sku: skuScan, 
-                                    barcode: dbMatch.barcode, 
+                                    barcode: skuScan, 
                                     desc: dbMatch.desc,
                                     alamat: alamatScan, 
                                     price: dbMatch.price, 
@@ -340,8 +299,14 @@
                                 });
                             } else {
                                 scannedItems.push({
-                                    sku: skuScan, barcode: skuScan, desc: "SKU TIDAK ADA DI DB",
-                                    alamat: alamatScan, price: 0, ks: "-", sys: 0, phy: null
+                                    sku: skuScan, 
+                                    barcode: skuScan, 
+                                    desc: "SKU TIDAK ADA DI DB",
+                                    alamat: alamatScan, 
+                                    price: 0, 
+                                    ks: "-", 
+                                    sys: 0, 
+                                    phy: null
                                 });
                             }
                         }
@@ -482,7 +447,7 @@
             let csv = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
             const link = document.createElement('a');
             link.href = encodeURI(csv);
-            link.download = `SBC_${activeSheet}_${new Date().toISOString().slice(0,10)}.csv`;
+            link.download = `SBC_Upload_${new Date().toISOString().slice(0,10)}.csv`;
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
