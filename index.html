@@ -143,12 +143,13 @@
                 <!-- STATUS FILTER -->
                 <div class="md:col-span-2">
                     <select id="filterStatus" onchange="applyFilters()" class="w-full py-2 px-3 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-700">
-                        <option value="ALL">Semua Status</option>
-                        <option value="MINUS">Selisih Minus (-)</option>
-                        <option value="PLUS">Selisih Plus (+)</option>
-                        <option value="MATCH">Akurat (0)</option>
-                        <option value="UNCHECKED">Belum Dicek</option>
-                    </select>
+    <option value="ALL">Semua Status</option>
+    <option value="VARIANCE">Semua Selisih (+/-)</option>
+    <option value="MINUS">Selisih Minus (-)</option>
+    <option value="PLUS">Selisih Plus (+)</option>
+    <option value="MATCH">Akurat (0)</option>
+    <option value="UNCHECKED">Belum Dicek</option>
+</select>
                 </div>
 
                 <!-- DYNAMIC ACTION BUTTONS -->
@@ -468,6 +469,7 @@
 
                 if (statusValue === 'MINUS') matchStatus = item.phy !== null && varVal < 0;
                 else if (statusValue === 'PLUS') matchStatus = item.phy !== null && varVal > 0;
+                else if (statusValue === 'VARIANCE') matchStatus = item.phy !== null && varVal !== 0; // Tambahan logic ini
                 else if (statusValue === 'MATCH') matchStatus = item.phy !== null && varVal === 0;
                 else if (statusValue === 'UNCHECKED') matchStatus = item.phy === null;
 
